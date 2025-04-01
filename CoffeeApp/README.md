@@ -2,7 +2,7 @@
 
 A Flutter-based coffee shop app built with **Riverpod** for state management and **Firebase** for backend services.
 
-![2](https://github.com/user-attachments/assets/d6e30b55-f29b-46e7-b275-1c22b6ef4a92)
+![Uploading 2.png…]()
 
 ## 🚀 Key Features
 

@@ -2,7 +2,7 @@
 
 A Flutter-based meal planning app built with **Firebase** and **Riverpod** for efficient state management and real-time data handling.
 
-![Adobe Express - file](https://github.com/user-attachments/assets/ca67a4f6-0bb1-460c-9f85-7f040b1e0b85)
+![Adobe Express - file](https://github.com/user-attachments/assets/ba6f8d81-0bb6-47ec-b43c-04528eb30d06)
 
 ## 🚀 Features
 

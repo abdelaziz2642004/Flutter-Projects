@@ -1,17 +1,30 @@
-# prj
+# Coffee Shop App – Buy Your Favorite Coffee
 
-A new Flutter project.
+A Flutter-based coffee shop app built with **Riverpod** for state management and **Firebase** for backend services.
 
-## Getting Started
+![2](https://github.com/user-attachments/assets/d6e30b55-f29b-46e7-b275-1c22b6ef4a92)
 
-This project is a starting point for a Flutter application.
+## 🚀 Key Features
 
-A few resources to get you started if this is your first Flutter project:
+### ☕ Favorites & Wishlist
+- Users can favorite coffee items and add them to a **wishlist** for later.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 🎨 Personalization
+- Includes **dark mode**, font customization, and the ability to save user preferences.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# CofeeApp
+### 🌟 Rating & Reviews
+- Users can **rate coffees** and leave **reviews** to help others.
+
+### 👤 User Profile
+- A **profile screen** with **order history** and saved preferences.
+
+### 💨 Smooth UI & Navigation
+- **Animated transitions** and **category-based browsing** for a seamless experience.
+
+## 📦 Tech Stack
+- **Flutter** (Dart)
+- **Riverpod** (State management, FutureProvider)
+- **Firebase** (Backend services)
+
+## 📂 Repository
+Check out the full codebase on **[GitHub: CoffeeApp](https://github.com/your-repo-link)**.

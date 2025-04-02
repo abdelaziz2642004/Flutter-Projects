@@ -2,7 +2,7 @@
 
 A Flutter-based Quran reading and Tafsir app, utilizing **Riverpod**, **Bloc Cubit**, and the **Quran.com API** for a seamless experience.
 
-![4](https://github.com/user-attachments/assets/83413dd1-b111-4c03-af63-477ef929b6a9)
+![4](https://github.com/user-attachments/assets/8d1ecb52-b0df-4e07-b0ba-2d312e625d24)
 
 ## 🚀 Key Features
 

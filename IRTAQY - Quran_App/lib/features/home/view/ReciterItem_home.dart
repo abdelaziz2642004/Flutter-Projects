@@ -1,0 +1,90 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/Models/Reciter.dart';
+import '../../../core/widgets/theme_provider.dart';
+
+class ReciterItem extends ConsumerStatefulWidget {
+  final Reciter reciter;
+  final Color textColor;
+  final bool isDarkMode;
+
+  const ReciterItem({
+    super.key,
+    required this.reciter,
+    required this.textColor,
+    required this.isDarkMode,
+  });
+
+  @override
+  ConsumerState<ReciterItem> createState() => _ReciterItemState();
+}
+
+class _ReciterItemState extends ConsumerState<ReciterItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeProvider);
+
+    return GestureDetector(
+      onTap: () {
+        /// Todo Navigate to surah list screen of this reciter
+      },
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 75,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            boxShadow:
+                _isHovered
+                    ? [
+                      BoxShadow(
+                        color:
+                            widget.isDarkMode
+                                ? const Color.fromARGB(101, 255, 255, 255)
+                                : const Color.fromARGB(117, 121, 177, 149),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                        blurStyle: BlurStyle.solid,
+
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                    : [],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  widget.reciter.imageUrl,
+                  width: 65,
+                  height: 65,
+                  fit: BoxFit.cover,
+                ),
+              ),
+
+              const SizedBox(height: 4),
+              Text(
+                widget.reciter.nameEnglish,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: widget.textColor,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

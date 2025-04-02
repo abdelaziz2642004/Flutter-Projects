@@ -1,0 +1,66 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:quran_app/core/Models/Reciter.dart';
+import 'package:quran_app/core/widgets/custom_text_form_field.dart';
+import 'package:quran_app/features/audio_playback/view/compact_player.dart';
+import 'package:quran_app/features/audio_playback/view_model/CompactVisibilityProvider.dart';
+import 'package:quran_app/features/reciter_selection/view/recitersList.dart';
+
+import '../../../core/widgets/colors.dart';
+import '../../../core/widgets/theme_provider.dart';
+
+class ReciterListScreen extends ConsumerStatefulWidget {
+  const ReciterListScreen({super.key});
+
+  @override
+  ConsumerState createState() => _ReciterListScreenState();
+}
+
+class _ReciterListScreenState extends ConsumerState<ReciterListScreen> {
+  String searchQuery = "";
+
+  @override
+  Widget build(BuildContext context) {
+    final compactOn = ref.watch(compactAudioPlayerVisibilityProvider);
+
+    // Ensure reciters is defined
+    final List<Reciter> filteredReciters =
+        reciters.values.where((reciter) {
+          final query = searchQuery.toLowerCase();
+          return reciter.nameEnglish.toLowerCase().contains(query) ||
+              reciter.nameArabic.toLowerCase().contains(query);
+        }).toList();
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
+    return Scaffold(
+      backgroundColor:
+          isDarkMode
+              ? CustomColors.darkBackground
+              : CustomColors.lightBackground,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
+            child: CustomTextFormFild(
+              hint: "Search Reciter",
+              prefixIcon: Icons.search,
+              filled: true,
+              suffixIcon: searchQuery.isEmpty ? null : Icons.cancel_sharp,
+              onTapSuffixIcon: () {
+                searchQuery = "";
+              },
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+            ),
+          ),
+          Expanded(child: ReciterList(reciters: filteredReciters)),
+          const SizedBox(height: 10),
+          if (compactOn) const CompactAudioPlayer(),
+        ],
+      ),
+    );
+  }
+}

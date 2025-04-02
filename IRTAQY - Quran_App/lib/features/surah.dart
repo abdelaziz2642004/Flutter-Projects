@@ -1,0 +1,477 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:quran/quran.dart' as quran;
+import 'package:quran_app/core/widgets/colors.dart';
+import 'package:quran_app/features/tafser/veiw/versetafserscreen.dart';
+import 'package:quran_app/features/verse_hilighting/data/repo/url_repo.dart';
+import 'package:quran_app/features/verse_hilighting/data/services/get_verse_url.dart';
+
+import '../core/widgets/theme_provider.dart';
+
+class SurahViewScreen extends ConsumerStatefulWidget {
+  final int surahNumber;
+  final int verseNumber;
+
+  const SurahViewScreen({
+    super.key,
+    required this.surahNumber,
+    required this.verseNumber,
+  });
+
+  @override
+  ConsumerState<SurahViewScreen> createState() => _SurahViewScreenState();
+}
+
+class _SurahViewScreenState extends ConsumerState<SurahViewScreen> {
+  final FlutterSoundPlayer _soundPlayer = FlutterSoundPlayer();
+  bool _isPlaying = false;
+  int? _highlightedVerse;
+  late PageController _pageController;
+  final List<List<int>> _pages = [];
+  final List<int> _pageNumbers = [];
+  List<String> _audioUrls = [];
+  int _currentSurah = 0;
+  int _currentVerse = 1;
+  late GetVerseUrl getVerseUrl;
+  late VerseUrlRepo verseUrlRepo;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentSurah = widget.surahNumber;
+    _currentVerse = widget.verseNumber; // تحديد الآية المختارة
+    _initializeAudioPlayer();
+    _loadSurah(_currentSurah, _currentVerse);
+    getVerseUrl = GetVerseUrl(widget.surahNumber);
+    verseUrlRepo = VerseUrlRepo(getVerseUrl);
+  }
+
+  void _initializeAudioPlayer() async {
+    await _soundPlayer.openPlayer();
+  }
+
+  String _toArabicNumbers(String value) {
+    return value
+        .replaceAll('0', '٠')
+        .replaceAll('1', '١')
+        .replaceAll('2', '٢')
+        .replaceAll('3', '٣')
+        .replaceAll('4', '٤')
+        .replaceAll('5', '٥')
+        .replaceAll('6', '٦')
+        .replaceAll('7', '٧')
+        .replaceAll('8', '٨')
+        .replaceAll('9', '٩');
+  }
+
+  void _loadSurah(int surahNumber, int verseNumber) {
+    setState(() {
+      _highlightedVerse = verseNumber;
+      _prepareAudioUrls(surahNumber);
+      _splitVersesByMushafPages(surahNumber);
+      _pageController = PageController(initialPage: _getPageIndex(verseNumber));
+    });
+  }
+
+  Future<void> _prepareAudioUrls(int surahNumber) async {
+    GetVerseUrl getVerseUrl = GetVerseUrl(surahNumber);
+    VerseUrlRepo verseUrlRepo = VerseUrlRepo(getVerseUrl);
+    _audioUrls = await verseUrlRepo.prepareAudioUrls(surahNumber);
+  }
+
+  void _splitVersesByMushafPages(int surahNumber) {
+    _pages.clear();
+    _pageNumbers.clear();
+
+    int verseCount = quran.getVerseCount(surahNumber);
+    int currentPage = quran.getPageNumber(surahNumber, 1);
+    List<int> currentPageVerses = [];
+
+    for (int i = 1; i <= verseCount; i++) {
+      int versePage = quran.getPageNumber(surahNumber, i);
+      if (versePage != currentPage) {
+        _pages.insert(0, currentPageVerses);
+        _pageNumbers.insert(0, currentPage);
+        currentPageVerses = [];
+        currentPage = versePage;
+      }
+      currentPageVerses.add(i);
+    }
+
+    if (currentPageVerses.isNotEmpty) {
+      _pages.insert(0, currentPageVerses);
+      _pageNumbers.insert(0, currentPage);
+    }
+  }
+
+  int _getPageIndex(int verseNumber) {
+    for (int i = 0; i < _pages.length; i++) {
+      if (_pages[i].contains(verseNumber)) return i;
+    }
+    return 0;
+  }
+
+  void _playAudio(int verseNumber) async {
+    if (verseNumber > _audioUrls.length || verseNumber < 0) return;
+    if (_isPlaying && _highlightedVerse == verseNumber) {
+      await _soundPlayer.stopPlayer();
+      setState(() {
+        _isPlaying = false;
+        _highlightedVerse = 0;
+      });
+      return;
+    }
+
+    // تشغيل الآية الجديدة
+    String audioUrl = _audioUrls[verseNumber - 1];
+    await _soundPlayer.startPlayer(
+      fromURI: audioUrl,
+      codec: Codec.mp3,
+      whenFinished: () {
+        _playNextVerse(verseNumber);
+      },
+    );
+
+    setState(() {
+      _isPlaying = true;
+      _highlightedVerse = verseNumber;
+      _pageController.jumpToPage(_getPageIndex(verseNumber));
+    });
+  }
+
+  void _playNextVerse(int currentVerse) async {
+    setState(() {
+      _currentVerse = currentVerse + 1;
+    });
+    _playAudio(currentVerse + 1);
+  }
+
+  void _playPreviousVerse(int currentVerse) async {
+    setState(() {
+      _currentVerse = currentVerse - 1;
+    });
+    _playAudio(currentVerse - 1);
+  }
+
+  void _goToPreviousSurah() {
+    if (_currentSurah > 1) {
+      setState(() {
+        _currentSurah--;
+        _currentVerse = 1;
+        _loadSurah(_currentSurah, _currentVerse);
+      });
+    }
+  }
+
+  void _goToNextSurah() {
+    if (_currentSurah < 114) {
+      setState(() {
+        _currentSurah++;
+        _currentVerse = 1;
+        _loadSurah(_currentSurah, _currentVerse);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _soundPlayer.closePlayer();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    return Scaffold(
+      backgroundColor:
+          isDarkMode
+              ? CustomColors.darkBackground
+              : CustomColors.lightBackground,
+      body: Padding(
+        padding: const EdgeInsets.only(top: 15),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 25, right: 15),
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Text(
+                          quran.getSurahNameArabic(_currentSurah),
+                          style: TextStyle(
+                            fontSize: 17,
+                            color:
+                                isDarkMode
+                                    ? CustomColors.darkText
+                                    : CustomColors.lightAppBar,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color:
+                          (_currentSurah < 114)
+                              ? isDarkMode
+                                  ? CustomColors.darkText
+                                  : CustomColors.lightAppBar
+                              : Colors.grey,
+                    ),
+                    tooltip: 'السورة التالية',
+                    onPressed: (_currentSurah < 114) ? _goToNextSurah : () {},
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_forward,
+                      color:
+                          (_currentSurah > 1)
+                              ? isDarkMode
+                                  ? CustomColors.darkText
+                                  : CustomColors.lightAppBar
+                              : Colors.grey,
+                    ),
+                    tooltip: 'السورة السابقة',
+                    onPressed:
+                        (_currentSurah < 114) ? _goToPreviousSurah : () {},
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _pages.length,
+                itemBuilder: (context, pageIndex) {
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      left: 16.0,
+                      right: 16,
+                      top: 12,
+                    ),
+                    child: _buildMushafPage(pageIndex),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMushafPage(int pageIndex) {
+    List<TextSpan> textSpans = [];
+
+    for (int verse in _pages[pageIndex]) {
+      bool isHighlighted = verse == _highlightedVerse;
+      textSpans.add(
+        TextSpan(
+          children:
+              quran
+                  .getVerse(_currentSurah, verse, verseEndSymbol: false)
+                  .split(' ')
+                  .map((word) => TextSpan(text: "$word "))
+                  .toList() +
+              [
+                TextSpan(
+                  text: "\uFD3F${_toArabicNumbers(verse.toString())}\uFD3E",
+                ),
+              ],
+          // text:
+          //     "${quran.getVerse(_currentSurah, verse, verseEndSymbol: false)}\uFD3F${_toArabicNumbers(verse.toString())}\uFD3E ",
+          style: TextStyle(
+            fontSize: 19,
+            fontFamily: 'me_quran',
+            color:
+                isHighlighted
+                    ? Colors.blue[200]
+                    : ref.watch(themeProvider) == ThemeMode.dark
+                    ? CustomColors.darkText
+                    : CustomColors.lightText,
+            fontWeight: FontWeight.normal,
+            height: 2.2,
+          ),
+
+          recognizer:
+              TapGestureRecognizer()
+                ..onTap = () {
+                  setState(() {
+                    _currentVerse = verse;
+                  });
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(15),
+                      ), // Rounded top corners
+                    ),
+                    backgroundColor: Colors.white, // Background color
+                    builder: (context) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(
+                                Icons.menu_book,
+                                color: Colors.blue,
+                              ), // Icon for Tafsir
+                              title: const Text(
+                                "التفسير",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => VerseTafserScreen(
+                                          surahNumber: _currentSurah,
+                                          verseNumber: _currentVerse,
+                                        ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const Divider(height: 1, thickness: 1),
+
+                            ListTile(
+                              leading: const Icon(
+                                Icons.play_circle_fill,
+                                color: Colors.blue,
+                              ), // Icon for Play Audio
+                              title: const Text(
+                                "الاستماع للايات",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onTap: () {
+                                _playAudio(verse);
+                                Navigator.of(context).pop(); // Close modal
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+        ),
+      );
+    }
+    return Column(
+      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if ((pageIndex == 0 || _currentVerse == 1) &&
+                    _currentSurah != 9 &&
+                    _currentSurah != 1)
+                  const Text(
+                    "${quran.basmala}\n",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.normal,
+                      fontFamily: 'me_quran',
+                    ),
+                  ),
+                Center(
+                  child: SingleChildScrollView(
+                    child: Text.rich(
+                      TextSpan(children: textSpans),
+                      textAlign: TextAlign.justify,
+                      softWrap: true,
+                      textDirection: TextDirection.rtl,
+                      maxLines: 15,
+                      // minFontSize: 10,
+                      // maxFontSize: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.transparent,
+          ),
+          child: Center(
+            // Centers the circular button inside the container
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    _playPreviousVerse(_currentVerse);
+                  },
+                  icon: Icon(
+                    Icons.skip_previous_rounded,
+                    size: 40,
+                    color:
+                        ref.watch(themeProvider) == ThemeMode.dark
+                            ? CustomColors.darkText
+                            : CustomColors.lightAppBar,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color:
+                        ref.watch(themeProvider) == ThemeMode.dark
+                            ? CustomColors.darkText
+                            : CustomColors.lightAppBar,
+                    size: 50, // Slightly adjusted size to fit better
+                  ),
+                  onPressed: () {
+                    _playAudio(_currentVerse);
+                  },
+                ),
+                IconButton(
+                  onPressed: () {
+                    _playNextVerse(_currentVerse);
+                  },
+                  icon: Icon(
+                    Icons.skip_next_rounded,
+                    size: 40,
+                    color:
+                        ref.watch(themeProvider) == ThemeMode.dark
+                            ? CustomColors.darkText
+                            : CustomColors.lightAppBar,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        /*Text(
+          'صفحة ${_pageNumbers[pageIndex]}',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[700],
+          ),
+        ),*/
+      ],
+    );
+  }
+}

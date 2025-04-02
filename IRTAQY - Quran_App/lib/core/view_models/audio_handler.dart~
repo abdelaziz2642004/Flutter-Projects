@@ -1,0 +1,88 @@
+import 'dart:async';
+
+import 'package:audio_service/audio_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:quran_app/features/surah_selection/view_model/selectedSurahProvider.dart';
+
+import '../../features/reciter_selection/view_model/selectedReciterProvider.dart';
+
+class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
+  final AudioPlayer _player = AudioPlayer();
+
+  AudioPlayer get player => _player;
+
+  Stream<Duration> get positionStream => _player.positionStream;
+
+  Stream<Duration?> get durationStream => _player.durationStream;
+
+  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+
+  bool get playing => _player.playing;
+
+  QuranAudioHandler() {
+    _player.playerStateStream.listen((playerState) {
+      final processingState = _mapProcessingState(playerState.processingState);
+      playbackState.add(
+        playbackState.value.copyWith(
+          controls: [
+            MediaControl.rewind,
+            if (playerState.playing) MediaControl.pause else MediaControl.play,
+            MediaControl.stop,
+          ],
+          playing: playerState.playing,
+          processingState: processingState,
+        ),
+      );
+    });
+  }
+
+  Future<void> playFromUrl(String url, WidgetRef ref) async {
+    await _player.setAudioSource(
+      AudioSource.uri(
+        Uri.parse(url),
+        tag: MediaItem(
+          id: ref.read(selectedSurahProvider)!.nameArabic,
+          album: ref.read(selectedReciterProvider)!.nameArabic,
+          title: "Quran App",
+          artUri: Uri.parse(
+            ref.read(selectedReciterProvider)!.imageUrl,
+          ), // Optional image
+        ),
+      ),
+    );
+    await _player.play();
+  }
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    _player.dispose();
+    await super.stop();
+  }
+
+  void dispose() {
+    _player.dispose();
+  }
+
+  AudioProcessingState _mapProcessingState(ProcessingState state) {
+    switch (state) {
+      case ProcessingState.idle:
+        return AudioProcessingState.idle;
+      case ProcessingState.loading:
+        return AudioProcessingState.loading;
+      case ProcessingState.buffering:
+        return AudioProcessingState.buffering;
+      case ProcessingState.ready:
+        return AudioProcessingState.ready;
+      case ProcessingState.completed:
+        return AudioProcessingState.completed;
+      }
+  }
+}

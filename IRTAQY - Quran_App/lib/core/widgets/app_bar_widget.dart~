@@ -1,0 +1,33 @@
+import 'package:flutter/material.dart';
+import 'package:quran_app/core/widgets/colors.dart';
+
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const CustomAppBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: const Text(
+        'Irtaqi',
+        style: TextStyle(
+          color: CustomColors.darkText,
+          fontWeight: FontWeight.bold,
+          fontSize: 23,
+        ),
+      ),
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.menu, color: CustomColors.darkText),
+
+        onPressed: () {
+          Scaffold.of(context).openDrawer();
+        },
+      ),
+      
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}

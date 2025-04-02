@@ -1,0 +1,40 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:quran_app/features/reciter_selection/view_model/selectedReciterProvider.dart';
+import 'package:quran_app/features/surah_selection/view_model/selectedSurahProvider.dart';
+
+class SurahAndReciterText extends ConsumerWidget {
+  const SurahAndReciterText({super.key, S});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedReciter = ref.watch(selectedReciterProvider);
+    final selectedSurah = ref.watch(selectedSurahProvider);
+    if (selectedReciter != null && selectedSurah != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'سورة ${selectedSurah.nameArabic}',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            selectedReciter.nameArabic,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.9),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Container();
+    }
+  }
+}

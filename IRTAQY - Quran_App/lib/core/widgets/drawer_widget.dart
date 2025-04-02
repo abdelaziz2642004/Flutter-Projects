@@ -1,0 +1,137 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:quran_app/core/widgets/colors.dart';
+import 'package:quran_app/core/widgets/theme_provider.dart';
+import 'package:quran_app/features/about/about.dart';
+import 'package:quran_app/features/contact/contact.dart';
+import 'package:quran_app/features/feedback/feedback.dart';
+import 'package:quran_app/features/settings/settings.dart';
+
+class CustomListTile extends ConsumerWidget {
+  final IconData icon;
+  final String title;
+  final Widget destination;
+
+  const CustomListTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.destination,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
+
+    final textColor = isDarkMode ? const Color(0xFFF5E8C7) : const Color(0xFF1A3C34);
+    final iconColor = isDarkMode ? const Color(0xFFF5E8C7) : const Color(0xFF1A3C34);
+
+    return ListTile(
+      leading: Icon(icon, color: iconColor),
+      title: Text(title, style: TextStyle(color: textColor, fontSize: 18)),
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder:
+                (context, animation, secondaryAnimation) => destination,
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
+              var tween = Tween(
+                begin: begin,
+                end: end,
+              ).chain(CurveTween(curve: curve));
+              var offsetAnimation = animation.drive(tween);
+              return SlideTransition(position: offsetAnimation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class CustomDrawer extends ConsumerWidget {
+  const CustomDrawer({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
+    final textColor = isDarkMode ? const Color(0xFFF5E8C7) : const Color(0xFF1A3C34);
+
+    return Drawer(
+      backgroundColor:
+          isDarkMode
+              ? CustomColors.darkBackground
+              : CustomColors.lightBackground,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color:
+                  isDarkMode
+                      ? CustomColors.darkAppBar
+                      : CustomColors.lightAppBar,
+            ),
+            child: const Text(
+              'Quran App Menu',
+              style: TextStyle(
+                color: Color(0xFFF5E8C7),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          // ✅ لا تستخدم const حتى يتم إعادة بناء العنصر عند تغيير الثيم
+          const CustomListTile(
+            icon: Icons.info,
+            title: 'About',
+            destination: About(),
+          ),
+          const CustomListTile(
+            icon: Icons.contact_support,
+            title: 'Contact',
+            destination: Contact(),
+          ),
+          const CustomListTile(
+            icon: Icons.feedback,
+            title: 'Feedback',
+            destination: Feedback_Screen(),
+          ),
+          const CustomListTile(
+            icon: Icons.settings,
+            title: 'Settings',
+            destination: Settings(),
+          ),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.dark_mode, color: textColor),
+            title: Text(
+              'Dark Mode',
+              style: TextStyle(color: textColor, fontSize: 18),
+            ),
+            trailing: Switch(
+              activeColor: textColor,
+              value: isDarkMode,
+              onChanged: (value) {
+                ref.read(themeProvider.notifier).toggleTheme();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

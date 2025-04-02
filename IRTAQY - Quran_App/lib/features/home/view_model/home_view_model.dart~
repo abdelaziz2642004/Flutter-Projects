@@ -1,0 +1,104 @@
+import 'dart:convert';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:quran_app/core/view_models/recitation_details.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/Models/Reciter.dart';
+import '../../../core/Models/Surah.dart';
+
+class HomeViewModel extends StateNotifier<List<Map<Reciter, Surah>>> {
+  HomeViewModel() : super([]);
+
+  Future<SharedPreferences> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    // prefs.remove('recentlyPlayed');
+    List<String> recentlyPlayedJson =
+        prefs.getStringList('recentlyPlayed') ?? [];
+    print(recentlyPlayedJson);
+    // Load existing state from SharedPreferences
+    state =
+        recentlyPlayedJson
+            .map((jsonString) {
+              print(jsonString);
+              Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+              print(jsonMap);
+              String reciterId = jsonMap.keys.first;
+              dynamic surahData = jsonMap.values.first;
+
+              // Ensure surahData is a Map, not an int
+              if (surahData is int) {
+                surahData = {"id": surahData}; // Convert to Map format
+              }
+
+              Reciter? existingReciter =
+                  reciters[int.parse(
+                    reciterId,
+                  )]; // Fetch from your reciters list
+              Surah? existingSurah = Surah.fromJson(
+                surahData,
+              ); // Ensure fromJson handles a Map
+
+              return (existingReciter != null)
+                  ? {existingReciter: existingSurah}
+                  : null;
+            })
+            .whereType<Map<Reciter, Surah>>()
+            .toList();
+    return prefs;
+  }
+
+  Future<void> addRecentlyPlayed(Reciter reciter, Surah surah) async {
+    final prefs = await load();
+
+    if (!state.any(
+      (map) => map.containsKey(reciter) && map.containsValue(surah),
+    )) {
+      state = [
+        {reciter: surah},
+        ...state.take(3),
+      ]; // Maintain only 3 items
+    }
+
+    await prefs.setStringList(
+      'recentlyPlayed',
+      state
+          .map(
+            (map) => jsonEncode({
+              map.keys.first.id.toString(): map.values.first.toJson(),
+            }),
+          )
+          .toList(),
+    );
+  }
+}
+
+final homeViewModelProvider =
+    StateNotifierProvider<HomeViewModel, List<Map<Reciter, Surah>>>(
+      (ref) => HomeViewModel(),
+    );
+
+class FavoriteRecitersNotifier extends StateNotifier<List<Reciter>> {
+  FavoriteRecitersNotifier() : super(RecitationDetails.instance.getFavorites());
+
+  void load() {
+    state = RecitationDetails.instance.getFavorites();
+  }
+
+  void toggleFavorite(Reciter reciter) {
+    if (state.contains(reciter)) {
+      state = state.where((r) => r != reciter).toList(); // Remove
+    } else {
+      state = [...state, reciter]; // Add
+    }
+    RecitationDetails.instance.toggleFavorite(
+      reciter.id.toString(),
+    ); // Persist changes
+  }
+}
+
+// Provider that allows state modification
+final favoriteRecitersProvider =
+    StateNotifierProvider<FavoriteRecitersNotifier, List<Reciter>>((ref) {
+      return FavoriteRecitersNotifier();
+    });

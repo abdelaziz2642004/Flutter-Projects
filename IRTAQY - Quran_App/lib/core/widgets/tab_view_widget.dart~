@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:quran_app/features/downloads/view/downloads_reciter_screen.dart';
+import 'package:quran_app/features/tafsir/tafsir.dart';
+
+import '../../features/home/view/home.dart';
+import '../../features/reciter_selection/view/Reciters_list_screen.dart';
+import '../../features/surahindex.dart';
+import '../view_models/download_manager.dart';
+
+class CustomTabView extends StatelessWidget {
+  final TabController tabController;
+  final void Function() func;
+
+  const CustomTabView({
+    super.key,
+    required this.tabController,
+    required this.func,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      Home(func: func),
+       const ReciterListScreen(),
+      const Tafsir(),
+      const SurahIndex(),
+      const DownloadsScreen(),
+      
+    ];
+
+    return TabBarView(
+      controller: tabController,
+      physics: const NeverScrollableScrollPhysics(),
+      children:
+          screens.map((screen) {
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: screen,
+            );
+          }).toList(),
+    );
+  }
+}

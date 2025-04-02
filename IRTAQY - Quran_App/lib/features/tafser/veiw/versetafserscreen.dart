@@ -1,0 +1,92 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:quran/quran.dart' as quran;
+import 'package:quran_app/features/tafser/data/sevices/tafser_servces.dart';
+import 'package:quran_app/widgets/tafser_container.dart';
+import 'package:quran_app/widgets/verse_text.dart';
+
+import '../../../core/widgets/colors.dart';
+import '../../../core/widgets/theme_provider.dart';
+import '../data/repo/verseetafser_repo.dart';
+import '../veiw_model/versetafser_cubit.dart';
+import '../veiw_model/versetafser_state.dart';
+
+class VerseTafserScreen extends ConsumerWidget {
+  final int surahNumber;
+  final int verseNumber;
+
+  const VerseTafserScreen({
+    super.key,
+    required this.surahNumber,
+    required this.verseNumber,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
+    final backgroundColor =
+        isDarkMode ? CustomColors.darkBackground : CustomColors.lightBackground;
+    final appBarColor =
+        isDarkMode ? CustomColors.darkAppBar : CustomColors.lightAppBar;
+
+    final textColor =
+        !isDarkMode ? CustomColors.darkText : CustomColors.lightText;
+
+    return BlocProvider(
+      create:
+          (context) => VerseTafserCubit(
+            verseTafsirRepo: VerseTafsirRepo(TafserServices()),
+          )..getversetafser(surahNumber, verseNumber),
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(
+          foregroundColor: textColor,
+          title: Text(
+            '  تفسير الآية  $verseNumber من سورة ${quran.getSurahNameArabic(surahNumber)}',
+            style: const TextStyle(
+              // color: textColor,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: appBarColor,
+          // foregroundColor: Colors.black,
+          //elevation: 0,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: BlocBuilder<VerseTafserCubit, VerseTafserState>(
+            builder: (context, state) {
+              if (state is LoadingTafserState) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is LoadedTafserState) {
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      VerseText(
+                        surahNumber: surahNumber,
+                        verseNumber: verseNumber,
+                      ),
+                      const SizedBox(height: 16),
+                      TafserContainer(text: state.verseTafser.text.toString()),
+                    ],
+                  ),
+                );
+              } else {
+                return const Center(
+                  child: Text(
+                    'فشل تحميل التفسير',
+                    style: TextStyle(fontSize: 18, color: Colors.red),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,59 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:quran_app/core/services/AudioService.dart';
+import 'package:quran_app/features/audio_playback/view/CompactWidget.dart';
+import 'package:quran_app/features/audio_playback/view/fullScreen_player.dart';
+import 'package:quran_app/features/audio_playback/view_model/AudioProvider.dart';
+import 'package:quran_app/features/audio_playback/view_model/AudioServiceProvider.dart';
+import 'package:quran_app/features/audio_playback/view_model/CompactVisibilityProvider.dart';
+import 'package:quran_app/features/reciter_selection/view_model/selectedReciterProvider.dart';
+import 'package:quran_app/features/surah_selection/view_model/selectedSurahProvider.dart';
+
+class CompactAudioPlayer extends ConsumerStatefulWidget {
+  const CompactAudioPlayer({super.key});
+
+  @override
+  ConsumerState createState() => _CompactAudioPlayerState();
+}
+
+class _CompactAudioPlayerState extends ConsumerState<CompactAudioPlayer> {
+  late AudioService _audioService;
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  void _navigateToFullScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const FullScreenPlayer()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _audioService = ref.watch(audioServiceProvider);
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: GestureDetector(
+        onTap: () => _navigateToFullScreen(context),
+        child: CompactContainer(
+          onClose: () {
+            setState(() {
+              ref.read(compactAudioPlayerVisibilityProvider.notifier).state =
+                  false;
+            });
+            ref.read(selectedSurahProvider.notifier).state = null;
+            ref.read(selectedReciterProvider.notifier).state = null;
+            ref.read(lastFetchedAudioFileProvider.notifier).state = null;
+            _audioService.dispose();
+          },
+          rebuild: () {
+            setState(() {});
+          },
+        ),
+      ),
+    );
+  }
+}

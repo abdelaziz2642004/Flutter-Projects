@@ -1,0 +1,69 @@
+import 'package:audio_service/audio_service.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../services/quran_service.dart';
+import 'audio_handler.dart';
+import 'audio_states.dart';
+
+class AudioControlsViewModel extends Cubit<AudioStates>
+    with WidgetsBindingObserver {
+  AudioControlsViewModel() : super(AudioInitial()) {
+    WidgetsBinding.instance.addObserver(this);
+    _initAudioHandler();
+  }
+
+  bool isPlaying = false;
+  bool isPaused = true;
+  late final QuranAudioHandler _audioHandler;
+  final service = QuranService.instance;
+
+  Future<void> _initAudioHandler() async {
+    _audioHandler = await AudioService.init(
+      builder: () => QuranAudioHandler(),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'com.example.quran.channel.audio',
+        androidNotificationChannelName: 'Quran Audio Playback',
+        androidNotificationOngoing: true,
+      ),
+    );
+  }
+
+  Future<void> playAudio(int id) async {
+    emit(AudioLoading());
+    final url = await service.getAudioUrl(id);
+    isPlaying
+        ? await _audioHandler.play()
+        : await _audioHandler.playFromUrl(url, id.toString(), "Mishary Rashed");
+    isPlaying = true;
+    isPaused = false;
+    emit(AudioPlaying());
+  }
+
+  Future<void> pauseAudio() async {
+    isPaused = true;
+    await _audioHandler.pause();
+    emit(AudioPaused());
+  }
+
+  Future<void> stop() async {
+    isPlaying = false;
+    await _audioHandler.stop();
+    emit(AudioStopped());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _audioHandler.stop();
+    super.close();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      pauseAudio();
+    }
+  }
+}
